@@ -40,6 +40,7 @@ canvas.onclick = (e)=>{
             state.current = state.game;
             break;
         case state.game:
+            if(bird.y - bird.radius <= 0) return; // When the bird is out of canvas
             bird.flap();
             break;
         case state.over:
