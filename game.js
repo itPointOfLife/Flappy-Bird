@@ -4,13 +4,15 @@ const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-const cz = innerHeight/480;
+const cz = innerHeight/480; // Coefficient of zoom(zoom ratio)
 let frames = 0;
-const DEGREE = Math.PI/180;
+const DEGREE = Math.PI/180; // Convert degree to radian
 
+// Load sprite img
 const sprite = new Image();
 sprite.src = "img/sprite.png";
 
+// Load sounds
 const SCORE_S = new Audio();
 SCORE_S.src = "audio/sfx_point.wav";
 
@@ -23,6 +25,7 @@ DIE.src = "audio/sfx_die.wav";
 const LVLUP = new Audio();
 LVLUP.src = "audio/lvlup.mp3";
 
+// Game state
 const state = {
     current: 0,
     getReady: 0,
@@ -30,6 +33,7 @@ const state = {
     over: 2
 }
 
+// Game control
 canvas.onclick = (e)=>{
     switch(state.current){
         case state.getReady:
@@ -53,6 +57,7 @@ canvas.onclick = (e)=>{
     }
 }
 
+// Background
 const bg = {
     sX: 0,
     sY: 0,
@@ -70,6 +75,7 @@ const bg = {
     }
 }
 
+// Foreground
 const fg = {
     sX: 276,
     sY: 0,
@@ -89,11 +95,13 @@ const fg = {
     },
 
     update(){
+        // Move foreground
         if(state.current === state.game)
             this.x = (this.x - this.dx)%(this.w/2);
     }
 }
 
+// bird
 const bird = {
     animation : [
         {sX: 276, sY: 112},
@@ -134,6 +142,7 @@ const bird = {
     },
 
     update(){
+        // Flap slowly if we on getReady state
         this.period = state.current === state.getReady ? 10 : 5;
 
         if(frames%this.period === 0)
@@ -149,6 +158,7 @@ const bird = {
             this.speed += this.gravity;
             this.y += this.speed;
 
+            // If the speed is grater than the jump - bird falling down
             if(this.speed >= this.jump){
                 this.frame = 1;
             }else if(!this.hit){
@@ -214,6 +224,7 @@ const gameOver = {
 
             const m = this.medal;
 
+            // Each 5 pipes new medal
             switch(Math.floor(score.best/5)){
                 case 0: 
                     break;
@@ -232,6 +243,8 @@ const gameOver = {
         }
     }
 }
+
+// Start button coords
 
 const startBtn = {
     x : canvas.clientWidth/2-gameOver.w/5,
@@ -257,7 +270,7 @@ const pipes = {
     hI: 400,
     w: 53*cz,
     h: 400*cz,
-    gap: 105*cz, //85 - значение зазора в оригинале
+    gap: 105*cz, //85 - original gap
     maxYPos: -150*cz,
     dx: 2*cz,
 
@@ -268,19 +281,21 @@ const pipes = {
             let topYPos = p.y;
             let bottomYPos = p.y + this.h + this.gap;
 
+            // Top pipe
             ctx.drawImage(sprite, this.top.sX, this.top.sY, this.wI, this.hI, p.x, topYPos, this.w, this.h);
+            // Bottom pipe
             ctx.drawImage(sprite, this.bottom.sX, this.bottom.sY, this.wI, this.hI, p.x, bottomYPos, this.w, this.h);
         }
     },
 
     update(){
-        if(state.current !== state.game) return; // не создавать новые трубы если мы не играем
+        if(state.current !== state.game) return; // shouldn`t create new pipes if are not playing
 
-        // Создаем новые трубы каждые 100 кадров
+        // Create new pipe each 100 frames
         if(frames%100 === 0){
             this.position.push({
                 x: canvas.clientWidth,
-                y: this.maxYPos * (Math.random() + 1) // верхняя позиция трубы рандомная, нижняя подтроится через + gap
+                y: this.maxYPos * (Math.random() + 1) // Top pipe in random position, bottom will set by + gap
             });
         }
 
@@ -289,26 +304,28 @@ const pipes = {
 
             let bottomPipeYPos = p.y + this.h + this.gap;
 
-            if(bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w 
-                && bird.y + bird.radius > p.y && bird.y - bird.radius < p.y + this.h){
+            // Collision detection
 
+            // Top pipe
+            if(bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w && bird.y + bird.radius > p.y && bird.y - bird.radius < p.y + this.h){
                 HIT.play();
                 bird.hit = true;
                 bird.rotation = 90 * DEGREE;
                 state.current = state.over;
             }
 
-            if(bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w 
-                && bird.y + bird.radius > bottomPipeYPos && bird.y - bird.radius < bottomPipeYPos + this.h){
-
+            // Bottom pipe
+            if(bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w && bird.y + bird.radius > bottomPipeYPos && bird.y - bird.radius < bottomPipeYPos + this.h){
                 HIT.play();
                 bird.hit = true;
                 bird.rotation = 90 * DEGREE;
                 state.current = state.over;
             }
 
+            // Move pipes to the left
             p.x -= this.dx;
 
+            // If pipes go beyond canvas
             if(p.x + this.w <=0){
                 this.position.shift();
                 score.value += 1;
@@ -331,6 +348,7 @@ const pipes = {
     }
 }
 
+// Score
 const score = {
     best: parseInt(localStorage.getItem("flappyBest")) || 0,
     value: 0,
@@ -346,6 +364,7 @@ const score = {
             ctx.strokeText(this.value, canvas.clientWidth/2-15*cz,50*cz);
         } else if(state.current === state.over){
             ctx.font = 'bold '+25*cz+'px Teko';
+            // Score value
             if(this.value >= 100){ 
                 ctx.fillText(this.value, canvas.clientWidth/2+gameOver.w/4.5,190*cz);
                 ctx.strokeText(this.value, canvas.clientWidth/2+gameOver.w/4.5,190*cz);
@@ -354,6 +373,7 @@ const score = {
                 ctx.strokeText(this.value, canvas.clientWidth/2+gameOver.w/3.3,190*cz);
             }
 
+            // Best score
             if(this.best >= 100){ 
                 ctx.fillText(this.best, canvas.clientWidth/2+gameOver.w/4.2,232*cz);
                 ctx.strokeText(this.best, canvas.clientWidth/2+gameOver.w/4.2,232*cz);
@@ -365,6 +385,7 @@ const score = {
     }
 }
 
+//Draw
 const draw = () => {
     ctx.fillStyle = '#70c5ce';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
@@ -378,12 +399,14 @@ const draw = () => {
     score.draw();
 }
 
+// Update
 const update = () => {
     bird.update();
     fg.update();
     pipes.update();
 }
 
+// Loop
 const loop = () => {
     update();
     draw();
